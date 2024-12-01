@@ -29,10 +29,16 @@ func main() {
 	}
 
 	var startTime = time.Now()
-	p1 := part1(puzzle)
-	fmt.Printf("Part 1: %d\n", p1)
+	result := part1(puzzle)
+	fmt.Printf("Part 1: %d\n", result)
 	executionTime := float32(time.Since(startTime).Milliseconds()) / float32(1000)
-	fmt.Printf("Completed Part 1 in %f seconds\n", executionTime)
+	fmt.Printf("Completed Part 1 in %f seconds\n\n", executionTime)
+
+	startTime = time.Now()
+	result = part2(puzzle)
+	fmt.Printf("Part 2: %d\n", result)
+	executionTime = float32(time.Since(startTime).Milliseconds()) / float32(1000)
+	fmt.Printf("Completed Part 2 in %f seconds\n", executionTime)
 }
 
 func part1(puzzle []string) int {
@@ -62,5 +68,26 @@ func part1(puzzle []string) int {
 		total += diff
 	}
 
+	return total
+}
+
+func part2(puzzle []string) int {
+
+	leftSide := make([]string, 0)
+	valueCountMap := make(map[string]int)
+	for _, line := range puzzle {
+		s := strings.Fields(line)
+		leftSide = append(leftSide, s[0])
+		count := valueCountMap[s[1]]
+		count++
+		valueCountMap[s[1]] = count
+	}
+
+	total := 0
+	for _, s := range leftSide {
+		count := valueCountMap[s]
+		val, _ := strconv.Atoi(s)
+		total += count * val
+	}
 	return total
 }
