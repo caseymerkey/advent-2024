@@ -58,5 +58,35 @@ func part1(puzzle []string) int {
 }
 
 func part2(puzzle []string) int {
-	return 0
+	numsRE := regexp.MustCompile(`(do(?:n't)?)|(mul)\((\d+),(\d+)\)`)
+
+	total := 0
+	do := true
+	for _, line := range puzzle {
+		matches := numsRE.FindAllStringSubmatch(line, -1)
+
+		for _, match := range matches {
+
+			var op string
+			if match[1] != "" {
+				op = match[1]
+			} else {
+				op = match[2]
+			}
+			switch op {
+			case "do":
+				do = true
+			case "don't":
+				do = false
+			case "mul":
+				if do {
+					n1, _ := strconv.Atoi(match[3])
+					n2, _ := strconv.Atoi(match[4])
+					total += n1 * n2
+				}
+			}
+		}
+	}
+
+	return total
 }
