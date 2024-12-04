@@ -42,12 +42,12 @@ func main() {
 
 func part1(puzzle []string) int {
 
+	// search horizontally
 	count := 0
 	puzzleBytes := make([][]string, 0)
 	xmasRE := regexp.MustCompile("XMAS")
 	samxRE := regexp.MustCompile("SAMX")
 	for _, line := range puzzle {
-		// fmt.Println(line)
 		matches := xmasRE.FindAllString(line, -1)
 		count += len(matches)
 		matches = samxRE.FindAllString(line, -1)
@@ -55,11 +55,11 @@ func part1(puzzle []string) int {
 		// while we're at it, break the line down into a byte aray for the next step
 		puzzleBytes = append(puzzleBytes, (strings.Split(line, "")))
 	}
-	// fmt.Println()
 
 	// These puzzles are square
 	size := len(puzzleBytes)
 
+	// This builds strings representing the SE->NW diagonals
 	for n := 0; n < size*2; n++ {
 		var sb strings.Builder
 		for col := 0; col < size; col++ {
@@ -70,14 +70,13 @@ func part1(puzzle []string) int {
 			}
 		}
 		line := sb.String()
-		// fmt.Println(line)
 		matches := xmasRE.FindAllString(line, -1)
 		count += len(matches)
 		matches = samxRE.FindAllString(line, -1)
 		count += len(matches)
 	}
 
-	// fmt.Println()
+	// And NE->SW diagonals
 	for n := 1 - size; n < size; n++ {
 		var sb strings.Builder
 		for col := 1 - size; col < size; col++ {
@@ -87,14 +86,14 @@ func part1(puzzle []string) int {
 			}
 		}
 		line := sb.String()
-		// fmt.Println(line)
 		matches := xmasRE.FindAllString(line, -1)
 		count += len(matches)
 		matches = samxRE.FindAllString(line, -1)
 		count += len(matches)
 	}
 
-	// fmt.Println()
+	// Lastly, rotating the puzzle 90 degrees (which I had written for another problem)
+	// makes getting the vertical lines easy
 	puzzleBytes = rotate(puzzleBytes, 1)
 	for row := 0; row < size; row++ {
 		var sb strings.Builder
@@ -102,7 +101,6 @@ func part1(puzzle []string) int {
 			sb.WriteString(puzzleBytes[row][col])
 		}
 		line := sb.String()
-		// fmt.Println(line)
 		matches := xmasRE.FindAllString(line, -1)
 		count += len(matches)
 		matches = samxRE.FindAllString(line, -1)
@@ -114,7 +112,28 @@ func part1(puzzle []string) int {
 
 func part2(puzzle []string) int {
 
-	return 0
+	puzzleChars := make([][]string, 0)
+	for _, line := range puzzle {
+		puzzleChars = append(puzzleChars, (strings.Split(line, "")))
+	}
+
+	count := 0
+	for row := 1; row < len(puzzleChars)-1; row++ {
+		for col := 1; col < len(puzzleChars[0])-1; col++ {
+			if puzzleChars[row][col] == "A" {
+				ne := puzzleChars[row-1][col-1]
+				nw := puzzleChars[row-1][col+1]
+				se := puzzleChars[row+1][col-1]
+				sw := puzzleChars[row+1][col+1]
+
+				if ((ne == "M" && sw == "S") || (ne == "S" && sw == "M")) && ((nw == "M" && se == "S") || (nw == "S" && se == "M")) {
+					count++
+				}
+			}
+		}
+	}
+
+	return count
 }
 
 func rotate(slice [][]string, direction int) [][]string {
