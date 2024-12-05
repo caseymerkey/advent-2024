@@ -28,23 +28,26 @@ func main() {
 		puzzle = append(puzzle, scanner.Text())
 	}
 
+	var unordered [][]int
+	var rules map[int][]int
 	var startTime = time.Now()
-	result := part1(puzzle)
+	result, unordered, rules := part1(puzzle)
 	fmt.Printf("Part 1: %d\n", result)
 	executionTime := float32(time.Since(startTime).Milliseconds()) / float32(1000)
 	fmt.Printf("Completed Part 1 in %f seconds\n\n", executionTime)
 
 	startTime = time.Now()
-	result = part2(puzzle)
+	result = part2(unordered, rules)
 	fmt.Printf("Part 2: %d\n", result)
 	executionTime = float32(time.Since(startTime).Milliseconds()) / float32(1000)
 	fmt.Printf("Completed Part 2 in %f seconds\n", executionTime)
 }
 
-func part1(puzzle []string) int {
+func part1(puzzle []string) (int, [][]int, map[int][]int) {
 
 	predecessorRules := make(map[int][]int)
 	updates := make([][]int, 0)
+	unorderedUpdates := make([][]int, 0)
 	total := 0
 
 	updateSection := false
@@ -90,12 +93,30 @@ func part1(puzzle []string) int {
 		if valid {
 			middle := update[(len(update)-1)/2]
 			total += middle
+		} else {
+			unorderedUpdates = append(unorderedUpdates, update)
 		}
 	}
 
-	return total
+	return total, unorderedUpdates, predecessorRules
 }
 
-func part2(puzzle []string) int {
-	return 0
+func part2(unordered [][]int, rules map[int][]int) int {
+	total := 0
+
+	for _, update := range unordered {
+
+		slices.SortFunc(update, func(a, b int) int {
+			predecessors := rules[a]
+			if slices.Contains(predecessors, b) {
+				return 1
+			} else {
+				return -1
+			}
+		})
+		middle := update[(len(update)-1)/2]
+		total += middle
+	}
+
+	return total
 }
