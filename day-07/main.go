@@ -59,11 +59,10 @@ func main() {
 
 func part1(puzzle []Equation) int {
 	total := 0
-	for i, equation := range puzzle {
+	for _, equation := range puzzle {
 		calc_memo := make(map[string]int)
 
-		if calculate("", equation.operands, equation.target, calc_memo) {
-			fmt.Printf("Equation %d works\n", i)
+		if calculate("", equation.operands, equation.target, calc_memo, false) {
 			total += equation.target
 		}
 	}
@@ -71,7 +70,7 @@ func part1(puzzle []Equation) int {
 	return total
 }
 
-func calculate(evaluated string, remainingOperands []int, target int, calc_memo map[string]int) bool {
+func calculate(evaluated string, remainingOperands []int, target int, calc_memo map[string]int, thirdOperator bool) bool {
 
 	if evaluated == "" {
 
@@ -84,14 +83,22 @@ func calculate(evaluated string, remainingOperands []int, target int, calc_memo 
 		}
 		key := strconv.Itoa(a) + "*" + strconv.Itoa(b)
 		calc_memo[key] = a * b
-		if calculate(key, remaining, target, calc_memo) {
+		if calculate(key, remaining, target, calc_memo, thirdOperator) {
 			return true
 		}
 
 		key = strconv.Itoa(a) + "+" + strconv.Itoa(b)
-		calc_memo[strconv.Itoa(a)+"+"+strconv.Itoa(b)] = a + b
-		if calculate(key, remaining, target, calc_memo) {
+		calc_memo[key] = a + b
+		if calculate(key, remaining, target, calc_memo, thirdOperator) {
 			return true
+		}
+
+		if thirdOperator {
+			key = strconv.Itoa(a) + "||" + strconv.Itoa(b)
+			calc_memo[key], _ = strconv.Atoi(strconv.Itoa(a) + strconv.Itoa(b))
+			if calculate(key, remaining, target, calc_memo, thirdOperator) {
+				return true
+			}
 		}
 		return false
 
@@ -102,8 +109,11 @@ func calculate(evaluated string, remainingOperands []int, target int, calc_memo 
 		if ok {
 
 			next, remaining := pop(remainingOperands)
-
-			for i := 0; i < 2; i++ {
+			var alsoConcatInt int
+			if thirdOperator {
+				alsoConcatInt = 1
+			}
+			for i := 0; i < (2 + alsoConcatInt); i++ {
 				result, op := eval(v, next, i)
 				key := evaluated + op + strconv.Itoa(next)
 				calc_memo[key] = result
@@ -116,7 +126,7 @@ func calculate(evaluated string, remainingOperands []int, target int, calc_memo 
 					if result > target {
 						valid = false
 					} else {
-						valid = calculate(key, remaining, target, calc_memo)
+						valid = calculate(key, remaining, target, calc_memo, thirdOperator)
 						if valid {
 							return true
 						}
@@ -136,17 +146,23 @@ func calculate(evaluated string, remainingOperands []int, target int, calc_memo 
 		// otherwise if there are more operands
 		// recursively call calculate with the new evaluated string & remaining operands
 
-		// evaluate previous + next operand... etc.
+		// evaluate previous + next operand, and (if necessary) previous || next operand
+		// etc.
 
 		return valid
 	}
 }
 
 func eval(a int, b int, operator int) (int, string) {
-	if operator == 0 {
+
+	switch operator {
+	case 0:
 		return a * b, "*"
-	} else {
+	case 1:
 		return a + b, "+"
+	default:
+		n, _ := strconv.Atoi(strconv.Itoa(a) + strconv.Itoa(b))
+		return n, "||"
 	}
 }
 
@@ -158,5 +174,14 @@ func pop(a []int) (int, []int) {
 }
 
 func part2(puzzle []Equation) int {
-	return 0
+	total := 0
+	for _, equation := range puzzle {
+		calc_memo := make(map[string]int)
+
+		if calculate("", equation.operands, equation.target, calc_memo, true) {
+			total += equation.target
+		}
+	}
+
+	return total
 }
