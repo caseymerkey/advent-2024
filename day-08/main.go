@@ -62,8 +62,7 @@ func part1(puzzle [][]string) int {
 		}
 	}
 
-	for ch, arr := range antennaMap {
-		fmt.Printf("%s: %v\n", ch, arr)
+	for _, arr := range antennaMap {
 		evaluated := make(map[string]bool)
 		for a := 0; a < len(arr); a++ {
 			for b := 0; b < len(arr); b++ {
@@ -76,9 +75,9 @@ func part1(puzzle [][]string) int {
 					}
 					if !evaluated[key] {
 						evaluated[key] = true
-						nodes := findAntinodes(arr[a], arr[b])
+						nodes := findAntinodes(arr[a], arr[b], len(puzzle), false)
 						for _, n := range nodes {
-							if n.row >= 0 && n.row < len(puzzle) && n.col >= 0 && n.col < len(puzzle[0]) && !slices.Contains(antinodes, n) {
+							if !slices.Contains(antinodes, n) {
 								antinodes = append(antinodes, n)
 							}
 						}
@@ -91,16 +90,91 @@ func part1(puzzle [][]string) int {
 	return len(antinodes)
 }
 
-func findAntinodes(p1 Coord, p2 Coord) []Coord {
+func part2(puzzle [][]string) int {
+	antennaMap := make(map[string][]Coord)
+	antinodes := make([]Coord, 0)
+
+	for r, row := range puzzle {
+		for c, ch := range row {
+			if ch != "." {
+				coords := antennaMap[ch]
+				coords = append(coords, Coord{row: r, col: c})
+				antennaMap[ch] = coords
+			}
+		}
+	}
+
+	for _, arr := range antennaMap {
+		evaluated := make(map[string]bool)
+		for a := 0; a < len(arr); a++ {
+			for b := 0; b < len(arr); b++ {
+				if a != b {
+					var key string
+					if a < b {
+						key = strconv.Itoa(a) + "-" + strconv.Itoa(b)
+					} else {
+						key = strconv.Itoa(b) + "-" + strconv.Itoa(a)
+					}
+					if !evaluated[key] {
+						evaluated[key] = true
+						nodes := findAntinodes(arr[a], arr[b], len(puzzle), true)
+						for _, n := range nodes {
+							if !slices.Contains(antinodes, n) {
+								antinodes = append(antinodes, n)
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	for _, c := range antinodes {
+		if puzzle[c.row][c.col] == "." {
+			puzzle[c.row][c.col] = "#"
+		}
+	}
+	for r := 0; r < len(puzzle); r++ {
+		for c := 0; c < len(puzzle[r]); c++ {
+			fmt.Print(puzzle[r][c])
+		}
+		fmt.Println()
+	}
+
+	return len(antinodes)
+}
+
+func findAntinodes(p1 Coord, p2 Coord, gridSize int, considerHarmonics bool) []Coord {
 	dx := p2.col - p1.col
 	dy := p2.row - p1.row
 
-	nodes := make([]Coord, 2)
-	nodes[0] = Coord{row: p2.row + dy, col: p2.col + dx}
-	nodes[1] = Coord{row: p1.row - dy, col: p1.col - dx}
-	return nodes
-}
+	nodes := make([]Coord, 0)
 
-func part2(puzzle [][]string) int {
-	return 0
+	factor := 1
+	for factor == 1 || considerHarmonics {
+		n := Coord{row: p2.row + (dy * factor), col: p2.col + (dx * factor)}
+		if n.row >= 0 && n.row < gridSize && n.col >= 0 && n.col < gridSize {
+			nodes = append(nodes, n)
+		} else {
+			break
+		}
+		factor++
+	}
+
+	factor = 1
+	for factor == 1 || considerHarmonics {
+		n := Coord{row: p1.row - (dy * factor), col: p1.col - (dx * factor)}
+		if n.row >= 0 && n.row < gridSize && n.col >= 0 && n.col < gridSize {
+			nodes = append(nodes, n)
+		} else {
+			break
+		}
+		factor++
+	}
+
+	if considerHarmonics {
+		nodes = append(nodes, p1)
+		nodes = append(nodes, p2)
+	}
+	return nodes
 }
