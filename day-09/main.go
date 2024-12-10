@@ -9,6 +9,21 @@ import (
 	"time"
 )
 
+type Segment struct {
+	size     int
+	contents []int
+}
+
+func (s *Segment) freeSpace() int {
+	return s.size - len(s.contents)
+}
+
+func (s *Segment) append(val int, copies int) {
+	for i := 0; i < copies; i++ {
+		s.contents = append(s.contents, val)
+	}
+}
+
 func main() {
 	inputFile := "sample.txt"
 	if len(os.Args) > 1 && len(os.Args[1]) > 0 {
@@ -26,6 +41,9 @@ func main() {
 	puzzle := make([]int, 0)
 	for scanner.Scan() {
 		r := scanner.Text()
+		if r == "\n" {
+			break
+		}
 		n, _ := strconv.Atoi(r)
 		puzzle = append(puzzle, n)
 	}
@@ -104,7 +122,65 @@ func part1(puzzle []int) int {
 }
 
 func part2(puzzle []int) int {
-	return 0
+	total := 0
+
+	openSpaces := make([]int, 0)
+	filesystem := make([]Segment, 0)
+	for i := 0; i < len(puzzle); i++ {
+		size := puzzle[i]
+		s := Segment{size: size}
+		if i%2 == 0 {
+			if size > 0 {
+				s.append((i / 2), size)
+			} else {
+				if i > 0 {
+					filesystem[i-1].size += size
+				}
+				if i < len(puzzle) {
+					filesystem[i-1].size += puzzle[i+1]
+					filesystem = append(filesystem, Segment{size: 0})
+					i++
+
+				}
+			}
+		} else {
+			openSpaces = append(openSpaces, i)
+		}
+		filesystem = append(filesystem, s)
+	}
+
+	for i := len(filesystem) - 1; i > 0; i-- {
+
+		if len(filesystem[i].contents) > 0 {
+			for j, openSpaceSegment := range openSpaces {
+				if openSpaceSegment >= i {
+					break
+				}
+				if filesystem[openSpaceSegment].freeSpace() >= len(filesystem[i].contents) {
+					filesystem[openSpaceSegment].contents = append(filesystem[openSpaceSegment].contents, filesystem[i].contents...)
+					filesystem[i] = Segment{size: filesystem[i].size, contents: make([]int, 0)}
+
+					if filesystem[openSpaceSegment].freeSpace() == 0 {
+						openSpaces = append(openSpaces[:j], openSpaces[j+1:]...)
+					}
+					break
+				}
+			}
+		}
+	}
+	i := 0
+	for _, segment := range filesystem {
+		for _, id := range segment.contents {
+			total += (i * id)
+			i++
+		}
+		for j := 0; j < segment.freeSpace(); j++ {
+			i++
+		}
+	}
+	fmt.Println()
+
+	return total
 }
 
 func pop(a []int) (int, []int) {
