@@ -93,5 +93,33 @@ func findPushCounts(xaSpaces, yaSpaces, xbSpaces, ybSpaces, xTarget, yTarget int
 
 func part2(puzzle []string) int {
 	total := 0
+	aButtonCost := 3
+	bButtonCost := 1
+	re := regexp.MustCompile(`X[\+=]([0-9]+), Y[\+=]([0-9]+)`)
+	lineCounter := 0
+	var xaSpaces, yaSpaces, xbSpaces, ybSpaces, xTarget, yTarget int
+	for _, line := range puzzle {
+		matches := re.FindStringSubmatch(line)
+		switch lineCounter {
+		case 0:
+			xaSpaces, _ = strconv.Atoi(matches[1])
+			yaSpaces, _ = strconv.Atoi(matches[2])
+		case 1:
+			xbSpaces, _ = strconv.Atoi(matches[1])
+			ybSpaces, _ = strconv.Atoi(matches[2])
+		case 2:
+			xTarget, _ = strconv.Atoi(matches[1])
+			yTarget, _ = strconv.Atoi(matches[2])
+
+			aPushCount, bPushCount := findPushCounts(xaSpaces, yaSpaces, xbSpaces, ybSpaces, xTarget+10000000000000, yTarget+10000000000000)
+			total += (aButtonCost * aPushCount) + (bButtonCost * bPushCount)
+
+		}
+		lineCounter++
+		if lineCounter == 4 {
+			lineCounter = 0
+		}
+	}
+
 	return total
 }
