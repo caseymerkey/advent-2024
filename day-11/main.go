@@ -10,15 +10,6 @@ import (
 	"time"
 )
 
-type Node struct {
-	value      string
-	childCount int
-	left       *Node
-	right      *Node
-}
-
-var nodeMap = make(map[string]Node)
-
 func main() {
 
 	inputFile := "sample.txt"
@@ -38,17 +29,14 @@ func main() {
 		puzzle = strings.Fields(line)
 	}
 
-	node := Node{value: "0"}
-	nodeMap["0"] = node
-
 	var startTime = time.Now()
-	result := part1(puzzle)
+	result := solve(puzzle, 25)
 	fmt.Printf("Part 1: %d\n", result)
 	executionTime := float32(time.Since(startTime).Milliseconds()) / float32(1000)
 	fmt.Printf("Completed Part 1 in %f seconds\n\n", executionTime)
 
 	startTime = time.Now()
-	result = part2(puzzle)
+	result = solve(puzzle, 75)
 	fmt.Printf("Part 2: %d\n", result)
 	executionTime = float32(time.Since(startTime).Milliseconds()) / float32(1000)
 	fmt.Printf("Completed Part 2 in %f seconds\n", executionTime)
@@ -56,93 +44,56 @@ func main() {
 	fmt.Println(result)
 }
 
-func part1(puzzle []string) int {
-
-	total := 0
-	for _, str := range puzzle {
-		exploded := expand(str, 25)
-		total += len(exploded)
-	}
-
-	return total
-}
-
-func part2(puzzle []string) int {
-
-	total := 0
-	for _, str := range puzzle {
-		exploded := expand(str, 75)
-		total += len(exploded)
-	}
-
-	return total
-}
-
-func expand(number string, iterations int) []string {
-
-	result := make([]string, 0)
-
-	node, _ := nodeMap[number]
-	if node.childCount == 0 {
-		if number == "0" {
-			value := "1"
-			left, found := nodeMap[value]
-			if !found {
-				left = Node{value: value}
-				nodeMap[value] = left
-			}
-			node.left = &left
-			node.childCount = 1
-
-		} else if len(number)%2 == 0 {
-			n1, n2 := split(number)
-			var left, right Node
-			var found bool
-			value := strconv.Itoa(n1)
-			left, found = nodeMap[value]
-			if !found {
-				left = Node{value: value}
-				nodeMap[value] = left
-			}
-			value = strconv.Itoa(n2)
-			right, found = nodeMap[value]
-			if !found {
-				right = Node{value: value}
-				nodeMap[value] = right
-			}
-			node.childCount = 2
-			node.left = &left
-			node.right = &right
-		} else {
-			n, _ := strconv.Atoi(number)
-			value := strconv.Itoa(2024 * n)
-			left, found := nodeMap[value]
-			if !found {
-				left = Node{value: value}
-				nodeMap[value] = left
-			}
-			node.left = &left
-			node.childCount = 1
-		}
-	}
-
-	if iterations > 1 {
-		result = append(result, expand(node.left.value, iterations-1)...)
-		if node.childCount > 1 {
-			result = append(result, expand(node.right.value, iterations-1)...)
-		}
-	} else {
-		result = append(result, node.left.value)
-		if node.childCount > 1 {
-			result = append(result, node.right.value)
-		}
-	}
-
-	return result
-}
-
 func split(number string) (int, int) {
 	n1, _ := strconv.Atoi(number[:len(number)/2])
 	n2, _ := strconv.Atoi(number[len(number)/2:])
 	return n1, n2
+}
+
+func solve(puzzle []string, iterations int) int {
+
+	expandMemo := make(map[string][]string)
+
+	puzzleExpansion := make(map[string]int)
+	for _, stone := range puzzle {
+		puzzleExpansion[stone]++
+	}
+
+	for i := 0; i < iterations; i++ {
+		newExpansion := make(map[string]int)
+		for stone, count := range puzzleExpansion {
+			expanded := handleSingleStone(stone, expandMemo)
+			for _, st := range expanded {
+				newExpansion[st] += count
+			}
+		}
+		puzzleExpansion = newExpansion
+	}
+
+	result := 0
+	for _, n := range puzzleExpansion {
+		result += n
+	}
+	return result
+}
+
+func handleSingleStone(stone string, expandMemo map[string][]string) []string {
+	result := make([]string, 0)
+
+	r, found := expandMemo[stone]
+	if found {
+		result = append(result, r...)
+	} else {
+		if stone == "0" {
+			result = append(result, "1")
+		} else if len(stone)%2 == 0 {
+			n1, n2 := split(stone)
+			result = append(result, strconv.Itoa(n1), strconv.Itoa(n2))
+		} else {
+			n, _ := strconv.Atoi(stone)
+			result = append(result, strconv.Itoa(n*2024))
+		}
+		expandMemo[stone] = result
+	}
+	return result
 }
