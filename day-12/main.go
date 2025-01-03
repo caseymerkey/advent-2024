@@ -29,19 +29,19 @@ func main() {
 	}
 
 	var startTime = time.Now()
-	result := part1(puzzle)
+	result, regions := part1(puzzle)
 	fmt.Printf("Part 1: %d\n", result)
 	executionTime := float32(time.Since(startTime).Milliseconds()) / float32(1000)
 	fmt.Printf("Completed Part 1 in %f seconds\n\n", executionTime)
 
 	startTime = time.Now()
-	result = part2(puzzle)
+	result = part2(regions, len(puzzle[0]), len(puzzle))
 	fmt.Printf("Part 2: %d\n", result)
 	executionTime = float32(time.Since(startTime).Milliseconds()) / float32(1000)
 	fmt.Printf("Completed Part 2 in %f seconds\n", executionTime)
 }
 
-func part1(puzzle [][]string) int {
+func part1(puzzle [][]string) (int, [][]Coord) {
 	total := 0
 
 	allRegions, allPerimeters := findAllRegions(puzzle)
@@ -51,7 +51,7 @@ func part1(puzzle [][]string) int {
 		total += (area * perimeter)
 	}
 
-	return total
+	return total, allRegions
 }
 
 type Coord struct {
@@ -110,7 +110,86 @@ func expandRegion(start Coord, letter string, currentRegion *[]Coord, perimeter 
 	}
 }
 
-func part2(puzzle [][]string) int {
+func part2(regions [][]Coord, xSize, ySize int) int {
 	total := 0
+
+	for _, region := range regions {
+		area := len(region)
+		sides := countSides(region, xSize, ySize)
+		total += (area * sides)
+	}
+
 	return total
+}
+
+func countSides(region []Coord, xSize, ySize int) int {
+	edges := 0
+
+	grid := make([][]bool, ySize)
+	for y := 0; y < ySize; y++ {
+		grid[y] = make([]bool, xSize)
+	}
+	for _, c := range region {
+		grid[c.y][c.x] = true
+	}
+
+	// Check horizontal edges
+	prevRow := make([]bool, xSize)
+	for y := 0; y <= ySize; y++ {
+		prevCell := false
+		nextPrevRow := make([]bool, xSize)
+		for x := 0; x < xSize; x++ {
+			if y < xSize {
+				cell := grid[y][x]
+				// if the cells above & below are different we're on an edge
+				if cell != prevRow[x] {
+					// and if the below cell is not the same as the previous below cell
+					// it's a new edge (if they are the same, we're continuing an edge)
+					if x == 0 || cell != prevCell || prevRow[x] != prevRow[x-1] {
+						edges++
+					}
+				}
+				prevCell = cell
+				nextPrevRow[x] = cell
+			} else {
+				// or if this is the last row
+				cell := prevRow[x]
+				if cell && !prevCell {
+					edges++
+				}
+				prevCell = cell
+			}
+		}
+		prevRow = nextPrevRow
+	}
+
+	// check the vertical edges
+	prevCol := make([]bool, ySize)
+
+	for x := 0; x <= xSize; x++ {
+		nextPrevCol := make([]bool, ySize)
+		prevCell := false
+		for y := 0; y < ySize; y++ {
+			if x < xSize {
+				cell := grid[y][x]
+				// if cells left & right are different
+				if cell != prevCol[y] {
+					if y == 0 || cell != prevCell || prevCol[y] != prevCol[y-1] {
+						edges++
+					}
+				}
+				prevCell = cell
+				nextPrevCol[y] = cell
+			} else {
+				cell := prevCol[y]
+				if cell && !prevCell {
+					edges++
+				}
+				prevCell = cell
+			}
+		}
+		prevCol = nextPrevCol
+	}
+
+	return edges
 }
