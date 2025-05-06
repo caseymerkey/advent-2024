@@ -46,7 +46,8 @@ func main() {
 
 	var startTime = time.Now()
 	result := part1(registers, program)
-	fmt.Printf("Part 1: %s\n", result)
+	resultString := strings.Trim(strings.Join(strings.Fields(fmt.Sprint(result)), ","), "[]")
+	fmt.Printf("Part 1: %s\n", resultString)
 	executionTime := float32(time.Since(startTime).Milliseconds()) / float32(1000)
 	fmt.Printf("Completed Part 1 in %f seconds\n\n", executionTime)
 
@@ -57,9 +58,9 @@ func main() {
 	// fmt.Printf("Completed Part 2 in %f seconds\n", executionTime)
 }
 
-func part1(registers map[string]int64, program []int) string {
+func part1(registers map[string]int64, program []int) []int {
 
-	output := make([]string, 0)
+	output := make([]int, 0)
 	for pointer := 0; pointer < len(program); {
 		opcode := program[pointer]
 		operand := program[pointer+1]
@@ -71,12 +72,10 @@ func part1(registers map[string]int64, program []int) string {
 			pointer += 2
 		}
 		if out >= 0 {
-			output = append(output, strconv.Itoa(out))
+			output = append(output, out)
 		}
-
 	}
-
-	return strings.Join(output, ",")
+	return output
 }
 
 func comboOperandValue(op int, registers map[string]int64) int64 {
