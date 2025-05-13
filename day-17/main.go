@@ -7,6 +7,7 @@ import (
 	"math"
 	"os"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -129,11 +130,11 @@ func main() {
 	executionTime := float32(time.Since(startTime).Milliseconds()) / float32(1000)
 	fmt.Printf("Completed Part 1 in %f seconds\n\n", executionTime)
 
-	// startTime = time.Now()
-	// result = part2(puzzle)
-	// fmt.Printf("Part 2: %d\n", result)
-	// executionTime = float32(time.Since(startTime).Milliseconds()) / float32(1000)
-	// fmt.Printf("Completed Part 2 in %f seconds\n", executionTime)
+	startTime = time.Now()
+	result2 := part2(program)
+	fmt.Printf("Part 2: %d\n", result2)
+	executionTime = float32(time.Since(startTime).Milliseconds()) / float32(1000)
+	fmt.Printf("Completed Part 2 in %f seconds\n", executionTime)
 }
 
 func part1(registers map[string]int64, program []int) []int {
@@ -141,4 +142,32 @@ func part1(registers map[string]int64, program []int) []int {
 	computer := Computer{}
 	output := computer.Run(registers["A"], registers["B"], registers["C"], program)
 	return output
+}
+
+func part2(program []int) int64 {
+
+	computer := Computer{}
+
+	var dfs func(A int64, idx int) int64
+	dfs = func(A int64, idx int) int64 {
+
+		if idx < 0 {
+			return A
+		}
+
+		for n := 0; n < 8; n++ {
+			A2 := (A << 3) | int64(n)
+			output := computer.Run(A2, 0, 0, program)
+			if slices.Equal(output, program[idx:]) {
+				result := dfs(A2, idx-1)
+				if result > 0 {
+					return result
+				}
+			}
+		}
+
+		return -1
+	}
+
+	return dfs(0, len(program)-1)
 }
