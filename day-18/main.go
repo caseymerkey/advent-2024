@@ -120,7 +120,7 @@ var Directions = []Coord{
 
 func main() {
 
-	inputFile := "sample.txt"
+	inputFile := "input.txt"
 	if len(os.Args) > 1 && len(os.Args[1]) > 0 {
 		inputFile = os.Args[1]
 	}
@@ -155,6 +155,11 @@ func main() {
 	executionTime := float32(time.Since(startTime).Milliseconds()) / float32(1000)
 	fmt.Printf("Completed Part 1 in %f seconds\n\n", executionTime)
 
+	startTime = time.Now()
+	resultCoord := part2(coordList, gridSize, cycleCount)
+	fmt.Printf("Part 1: %v\n", resultCoord)
+	executionTime = float32(time.Since(startTime).Milliseconds()) / float32(1000)
+	fmt.Printf("Completed Part 1 in %f seconds\n\n", executionTime)
 }
 
 func part1(coordList []Coord, gridSize, cycleCount int) int {
@@ -167,9 +172,30 @@ func part1(coordList []Coord, gridSize, cycleCount int) int {
 	return dijkstra(blockedMap, Coord{0, 0}, Coord{gridSize - 1, gridSize - 1})
 }
 
+func part2(coordList []Coord, gridSize, cycleCount int) Coord {
+
+	blockedMap := make(map[Coord]bool)
+	for i := 0; i < cycleCount; i++ {
+		blockedMap[coordList[i]] = true
+	}
+
+	start := Coord{0, 0}
+	target := Coord{gridSize - 1, gridSize - 1}
+
+	for i := cycleCount; i < len(coordList); i++ {
+		blockedMap[coordList[i]] = true
+		d := dijkstra(blockedMap, start, target)
+		if d < 0 {
+			return coordList[i]
+		}
+	}
+
+	return start
+}
+
 func dijkstra(blocked map[Coord]bool, start, target Coord) int {
 
-	result := 0
+	result := -1
 	pq := NewPriorityQueue()
 	distances := make(map[Coord]int)
 	visited := make(map[Coord]bool)
@@ -181,20 +207,13 @@ func dijkstra(blocked map[Coord]bool, start, target Coord) int {
 	pq.Push(item)
 	distances[start] = 0
 
-	k := 0
-
 	for pq.Length() > 0 {
-		k++
-		if k%100000 == 0 {
-			fmt.Printf("%d - pq is %d deep\n", k, pq.Length())
-		}
 		pqItem := pq.Pop()
 		currentLoc := pqItem.Value.(Coord)
 		if currentLoc == target {
 			result = distances[currentLoc]
 		} else if distances[currentLoc] == math.MaxInt {
-			// remaining coords are unreachable
-			log.Println("Remaining locations are unreachable")
+			return -1
 		} else {
 			for _, dir := range Directions {
 				c := Coord{x: currentLoc.x + dir.x, y: currentLoc.y + dir.y}
