@@ -72,6 +72,12 @@ func main() {
 	fmt.Printf("Part 1: %d\n", result)
 	executionTime := float32(time.Since(startTime).Milliseconds()) / float32(1000)
 	fmt.Printf("Completed Part 1 in %f seconds\n\n", executionTime)
+
+	startTime = time.Now()
+	result = part2(maze)
+	fmt.Printf("Part 1: %d\n", result)
+	executionTime = float32(time.Since(startTime).Milliseconds()) / float32(1000)
+	fmt.Printf("Completed Part 1 in %f seconds\n\n", executionTime)
 }
 
 func part1(maze Maze) int {
@@ -131,6 +137,104 @@ func part1(maze Maze) int {
 	}
 
 	return total
+}
+
+func part2(maze Maze) int {
+	var start, target Coord
+	for r, row := range maze {
+		for c, str := range row {
+			if str == "S" {
+				start = Coord{row: r, col: c}
+			} else if str == "E" {
+				target = Coord{row: r, col: c}
+			}
+		}
+	}
+
+	// The path is pre-ordained. No forks. So walk the path and assign each coordinate in the
+	// path it's step value
+	path := []Coord{start}
+	distances := make(map[Coord]int)
+	distances[start] = 0
+	loc := start
+	steps := 0
+	for loc != target {
+		for _, d := range directions {
+			c := move(loc, d, 1)
+			if _, found := distances[c]; !found && maze[c.row][c.col] != "#" {
+				loc = c
+				steps++
+				distances[loc] = steps
+				path = append(path, loc)
+				break
+			}
+		}
+	}
+
+	total := 0
+	for _, loc1 := range path {
+		spaces := spacesInRange(maze, loc1, 20)
+		for _, loc2 := range spaces {
+			if loc1.row == 4 && loc1.col == 4 && loc2.row == 5 && loc2.col == 5 {
+				fmt.Println("Here")
+			}
+			dist1 := distances[loc1]
+			dist2 := distances[loc2]
+			if dist1 < dist2 {
+				cheatSteps := abs(loc1.row-loc2.row) + abs(loc1.col-loc2.col)
+				saved := dist2 - dist1 - cheatSteps
+				if saved >= 100 {
+					total += 1
+				}
+			}
+		}
+	}
+
+	return total
+}
+
+func abs(n int) int {
+	if n < 0 {
+		n = n * -1
+	}
+	return n
+}
+
+func spacesInRange(maze Maze, loc Coord, rng int) []Coord {
+	spacesMap := make(map[Coord]bool)
+
+	submitSpace := func(space Coord) {
+		if space != loc && !spacesMap[space] && maze.IsSpace(space) {
+			d := abs(space.row-loc.row) + abs(space.col-loc.col)
+			if d > rng {
+				fmt.Printf("%v is actually %d away\n", space, d)
+			}
+			spacesMap[space] = true
+		}
+	}
+
+	for colOffset := 0; colOffset <= rng; colOffset++ {
+		for rowOffset := 0; rowOffset <= rng-colOffset; rowOffset++ {
+			space := Coord{row: loc.row + rowOffset, col: loc.col + colOffset}
+			submitSpace(space)
+
+			space = Coord{row: loc.row - rowOffset, col: loc.col + colOffset}
+			submitSpace(space)
+
+			space = Coord{row: loc.row - rowOffset, col: loc.col - colOffset}
+			submitSpace(space)
+
+			space = Coord{row: loc.row + rowOffset, col: loc.col - colOffset}
+			submitSpace(space)
+		}
+
+	}
+	spaces := make([]Coord, 0)
+	for space := range spacesMap {
+		spaces = append(spaces, space)
+	}
+	return spaces
+
 }
 
 func wallSize(maze Maze, loc, dir Coord) int {
