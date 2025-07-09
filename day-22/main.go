@@ -9,6 +9,15 @@ import (
 	"time"
 )
 
+type Sequence [4]int
+
+func (s *Sequence) push(n int) {
+	for i := 0; i < 3; i++ {
+		s[i] = s[i+1]
+	}
+	s[3] = n
+}
+
 func main() {
 	inputFile := "input.txt"
 	if len(os.Args) > 1 && len(os.Args[1]) > 0 {
@@ -31,6 +40,12 @@ func main() {
 	fmt.Printf("Part 1: %d\n", result)
 	executionTime := float32(time.Since(startTime).Milliseconds()) / float32(1000)
 	fmt.Printf("Completed Part 1 in %f seconds\n\n", executionTime)
+
+	startTime = time.Now()
+	result = part2(codes)
+	fmt.Printf("Part 1: %d\n", result)
+	executionTime = float32(time.Since(startTime).Milliseconds()) / float32(1000)
+	fmt.Printf("Completed Part 2 in %f seconds\n\n", executionTime)
 }
 
 func part1(codes []string) int {
@@ -44,6 +59,51 @@ func part1(codes []string) int {
 		total += secret
 	}
 	return total
+}
+
+func part2(seeds []string) int {
+	allData := make([]map[Sequence]int, 0)
+	uniqueSequences := make(map[Sequence]bool)
+
+	for _, seed := range seeds {
+		var previousPrice int
+		var price int
+		sequence := Sequence{}
+		cache := make(map[Sequence]int)
+		secret, _ := strconv.Atoi(seed)
+		price = secret % 10
+
+		for i := range 2000 {
+			evaluate(&secret)
+			previousPrice = price
+			price = secret % 10
+			delta := price - previousPrice
+			sequence.push(delta)
+			if i >= 3 {
+				_, found := cache[sequence]
+				if !found {
+					cache[sequence] = price
+				}
+				uniqueSequences[sequence] = true
+			}
+		}
+		allData = append(allData, cache)
+	}
+
+	highest := 0
+	var bestSeq Sequence
+	for seq := range uniqueSequences {
+		total := 0
+		for _, cache := range allData {
+			total += cache[seq]
+		}
+		if total > highest {
+			highest = total
+			bestSeq = seq
+		}
+	}
+	// fmt.Printf("%v ==> %d\n", bestSeq, highest)
+	return highest
 }
 
 func evaluate(secret *int) {
