@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"log"
 	"maps"
@@ -13,16 +14,11 @@ import (
 	"time"
 )
 
-type Puzzle struct {
-	nodes map[string]bool
-	gates []Gate
-}
-
 type Gate struct {
 	n1       string
 	n2       string
 	function string
-	output   string
+	n3       string
 }
 
 func main() {
@@ -39,10 +35,9 @@ func main() {
 	defer file.Close()
 	scanner := bufio.NewScanner(file)
 
-	puzzle := Puzzle{
-		nodes: make(map[string]bool),
-		gates: make([]Gate, 0),
-	}
+	nodes := make(map[string]bool)
+	gates := make([]Gate, 0)
+
 	inGates := false
 	inputRE := regexp.MustCompile(`(\w\d+): ([01])`)
 	gateRE := regexp.MustCompile(`([\w\d]+) ([ANDXOR]+) ([\w\d]+) -> ([\w\d]+)`)
@@ -56,70 +51,62 @@ func main() {
 				if matches != nil {
 					name := matches[1]
 					val := (matches[2] == "1")
-					puzzle.nodes[name] = val
+					nodes[name] = val
 				}
 			}
 		} else {
 			matches := gateRE.FindStringSubmatch(line)
 			if matches != nil {
-				n1 := matches[1]
-				n2 := matches[3]
-				n3 := matches[4]
 				gate := Gate{
-					n1:       n1,
-					n2:       n2,
+					n1:       matches[1],
 					function: matches[2],
-					output:   n3,
+					n2:       matches[3],
+					n3:       matches[4],
 				}
-				puzzle.gates = append(puzzle.gates, gate)
+				gates = append(gates, gate)
 			}
 		}
 	}
 
 	var startTime = time.Now()
-	result := part1(puzzle)
-	fmt.Printf("Part 1: %d\n", result)
+	r1 := part1(copyNodes(nodes), gates)
+	fmt.Printf("Part 1: %d\n", r1)
 	executionTime := float32(time.Since(startTime).Milliseconds()) / float32(1000)
 	fmt.Printf("Completed Part 1 in %f seconds\n\n", executionTime)
+
+	// startTime = time.Now()
+	// r2 := part2(nodes, gates)
+	// fmt.Printf("Part 2: %s\n", r2)
+	// executionTime = float32(time.Since(startTime).Milliseconds()) / float32(1000)
+	// fmt.Printf("Completed Part 2 in %f seconds\n\n", executionTime)
 }
 
-func part1(puzzle Puzzle) int {
+func part1(nodes map[string]bool, gates []Gate) int {
+	// eval all gates
+	evalAllGates(nodes, gates)
+	// return z values
+	return readNumber(nodes, 'z')
+}
 
-	solutionValues := make(map[string]string)
-
-	gates := puzzle.gates
+func evalAllGates(nodes map[string]bool, gates []Gate) {
 	for len(gates) > 0 {
 		for i, g := range slices.Backward(gates) {
-			v1, ok1 := puzzle.nodes[g.n1]
-			v2, ok2 := puzzle.nodes[g.n2]
-			if ok1 && ok2 {
-				// all inputs satisfied. eval the gate
-				var v3 bool
-				switch g.function {
-				case "AND":
-					v3 = v1 && v2
-				case "OR":
-					v3 = v1 || v2
-				case "XOR":
-					v3 = (v1 || v2) && !(v1 && v2)
-				}
-				puzzle.nodes[g.output] = v3
-
-				if g.output[0] == 'z' {
-					var valStr string
-					if v3 {
-						valStr = "1"
-					} else {
-						valStr = "0"
-					}
-					solutionValues[g.output] = valStr
-				}
-
-				// finally, remove this from the list of gates to eval
+			v3, err := evalGate(nodes, g)
+			if err == nil {
+				nodes[g.n3] = v3
 				gates = slices.Delete(gates, i, i+1)
 			}
 		}
+	}
+}
 
+func readNumber(nodes map[string]bool, prefix byte) int {
+	solutionValues := make(map[string]string)
+
+	for k, v := range nodes {
+		if k[0] == prefix {
+			solutionValues[k] = boolToBinaryString(v)
+		}
 	}
 
 	keys := slices.Collect(maps.Keys(solutionValues))
@@ -131,10 +118,45 @@ func part1(puzzle Puzzle) int {
 	for _, s := range keys {
 		builder.WriteString(solutionValues[s])
 	}
-	binaryValue := builder.String()
-	// fmt.Println(binaryValue)
-
-	val, _ := strconv.ParseInt(binaryValue, 2, 64)
+	binaryString := builder.String()
+	val, _ := strconv.ParseInt(binaryString, 2, 64)
 
 	return int(val)
+}
+
+func boolToBinaryString(b bool) string {
+	valStr := "0"
+	if b {
+		valStr = "1"
+	}
+	return valStr
+}
+
+func evalGate(nodes map[string]bool, g Gate) (bool, error) {
+	v1, ok1 := nodes[g.n1]
+	v2, ok2 := nodes[g.n2]
+	if ok1 && ok2 {
+		// all inputs satisfied. eval the gate
+		var v3 bool
+		switch g.function {
+		case "AND":
+			v3 = v1 && v2
+		case "OR":
+			v3 = v1 || v2
+		case "XOR":
+			v3 = (v1 || v2) && !(v1 && v2)
+		}
+		return v3, nil
+	} else {
+		return false, errors.New("Inputs not available")
+	}
+}
+
+func copyNodes(nodes map[string]bool) map[string]bool {
+
+	copy := make(map[string]bool)
+	for k, v := range nodes {
+		copy[k] = v
+	}
+	return copy
 }
